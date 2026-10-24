@@ -2,11 +2,7 @@
   "name": "solilo",
   "version": "0.1.0",
   "description": "Import Solidity and literal Alloy interfaces as typed ABI arrays.",
-  "type": "module",
   "license": "MIT",
-  "engines": {
-    "node": ">=24.22.1"
-  },
   "files": [
     "dist",
     "README.md",
@@ -14,6 +10,7 @@
     "THIRD_PARTY_NOTICES.md",
     "licenses"
   ],
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -26,38 +23,50 @@
       "default": "./dist/vite.js"
     }
   },
-  "typescript": {
-    "contentMapper": {
-      "exec": [
-        "node",
-        "dist/mapper.js"
-      ],
-      "compilerOptions": [],
-      "dynamicConfig": true
-    }
-  },
   "scripts": {
     "build:wasm": "cargo build --locked --release --target wasm32-unknown-unknown",
     "build": "npm run build:wasm && tsc -p tsconfig.json && node scripts/build.mjs",
-    "check": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test tests/*.test.mjs",
+    "check": "vp check --deny-warnings",
+    "check:types": "tsc -p tsconfig.json --noEmit",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
+    "lint": "vp lint --deny-warnings",
+    "staged": "vp staged",
+    "test": "vp test run",
     "test:types": "tsc -p examples/tsconfig.json --runExternalCode",
+    "prepare": "node scripts/prepare.mjs",
     "prepack": "npm run build"
   },
   "dependencies": {
     "abitype": "1.2.3"
   },
   "devDependencies": {
-    "typescript": "7.1.0-dev.20261023.1",
-    "@types/node": "^24.0.0",
-    "viem": "^2.0.0",
-    "vite": "8.3.5",
-    "vitest": "5.0.5",
-    "solc": "0.8.38",
     "@foundry-rs/anvil": "1.7.1",
-    "@foundry-rs/forge": "1.7.1"
+    "@foundry-rs/forge": "1.7.1",
+    "@types/node": "^24.0.0",
+    "solc": "0.8.38",
+    "typescript": "7.1.0-dev.20261023.1",
+    "viem": "^2.0.0",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
+    "vite-plus": "1.4.0",
+    "vitest": "5.0.5"
   },
   "overrides": {
-    "tmp": "0.2.7"
+    "tmp": "0.2.7",
+    "vite": "$vite",
+    "vitest": "$vitest"
+  },
+  "typescript": {
+    "contentMapper": {
+      "compilerOptions": [],
+      "dynamicConfig": true,
+      "exec": [
+        "node",
+        "dist/mapper.js"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=24.22.1"
   }
 }

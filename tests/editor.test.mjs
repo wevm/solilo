@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
@@ -15,7 +15,7 @@ import { server, position, eventually } from "./lsp.mjs";
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), "solilo-editor-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(root, { recursive: true, force: true }));
   writeFileSync(join(root, "package.json"), '{"type":"module"}');
   symlinkSync(resolve("node_modules"), join(root, "node_modules"));
   writeFileSync(
@@ -53,7 +53,9 @@ const wrong: Promise<string> = c.read.number();
     execFileSync(
       resolve("node_modules/.bin/tsc"),
       ["-p", root, "--runExternalCode"],
-      { encoding: "utf8" },
+      {
+        encoding: "utf8",
+      },
     ),
     "",
   );
@@ -96,7 +98,7 @@ test("native TS7 definitions, getters, unsaved source edits and invalid source d
       textDocument: { uri },
       position: position(text, "read.number", 5),
     });
-    t.diagnostic(
+    console.info(
       `viem read.number definition targets: ${JSON.stringify(viem)}`,
     );
     const getter = await lsp.request("textDocument/definition", {

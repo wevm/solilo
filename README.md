@@ -3,8 +3,8 @@
 Import Solidity contracts and literal Alloy Rust interfaces as **readonly, literal ABI arrays**. Use the arrays with viem, ox, or abitype; there is no generated client or user-maintained bindings file.
 
 ```ts
-import { getContract } from 'viem';
-import { Counter } from './Counter.sol';
+import { getContract } from "viem";
+import { Counter } from "./Counter.sol";
 
 const counter = getContract({ abi: Counter, address, client });
 const number = await counter.read.number(); // bigint
@@ -12,7 +12,7 @@ await counter.write.setNumber([42n]);
 ```
 
 ```ts
-import { ITIP20, IRolesAuth } from './tip20.rs';
+import { ITIP20, IRolesAuth } from "./tip20.rs";
 
 // Separate exports; compose only when that is the interface you want.
 const combined = [...ITIP20, ...IRolesAuth] as const;
@@ -41,9 +41,7 @@ Add to your `tsconfig.json`:
     "strict": true,
     "noEmit": true
   },
-  "contentMappers": [
-    { "package": "solilo", "extensions": [".sol", ".rs"] }
-  ]
+  "contentMappers": [{ "package": "solilo", "extensions": [".sol", ".rs"] }]
 }
 ```
 
@@ -82,8 +80,8 @@ Node and Bun retain their normal module-instance caches. Restart the process to 
 
 ```ts
 // vite.config.ts or vitest.config.ts
-import { defineConfig } from 'vite';
-import solilo from 'solilo/vite';
+import { defineConfig } from "vite";
+import solilo from "solilo/vite";
 
 export default defineConfig({ plugins: [solilo()] });
 ```
@@ -128,10 +126,22 @@ source "$HOME/.cargo/env" # if rustup is not already on PATH
 npm ci
 npm run build
 npm run check
+npm run check:types
 npm run test:types
 npm test
 npm pack
 ```
+
+Vite+ owns the development toolchain in `vite.config.ts`: `npm test` runs Vitest,
+`npm run check` checks Oxfmt formatting and Oxlint rules without changing files,
+`npm run format` applies formatting, and `npm run lint` runs Oxlint alone.
+Type checks stay on the pinned TypeScript 7.1 compiler so the content mapper is exercised.
+
+On a local Git checkout, `npm ci` installs the Vite+ hook dispatcher and recreates
+`.vite-hooks/pre-commit`, which runs `vp staged`. The entire `.vite-hooks/` directory
+is ignored; hook policy lives in `scripts/prepare.mjs` and `vite.config.ts`.
+Run `npm run staged` manually or `npm exec -- vp hooks status` to inspect the setup.
+CI and `VP_GIT_HOOKS=0` skip hook setup. Hooks are development-only and are not shipped.
 
 The build compiles the solilo-owned bridge against Solar's public semantic APIs and copies it into `dist/engine.wasm`. The bridge uses explicit length-delimited JSON allocation/analyze/free exports, no wasm-bindgen, and no host filesystem imports. The JS host discards trapped WASM instances instead of reusing possibly damaged compiler state. `npm pack` builds first; the resulting package never builds at installation time.
 
@@ -139,6 +149,6 @@ Tests cover solc ABI parity, Alloy TIP20 parity, viem inference and negative typ
 
 The packed-package test first installs its consumer dependencies to warm the npm cache, deletes the consumer's `node_modules`, then reinstalls with `npm ci --offline --ignore-scripts`. Runtime checks have only Node and Bun on PATH. The test also checks that browser output contains arrays rather than a compiler. Validation currently covers Linux; macOS/Windows have not been independently verified.
 
-GitHub Actions runs the reusable Verify workflow on pull requests and pushes to `main`, with manual runs available. Both Node 24.22.1 and 26.12.1 build the WASM engine, check Rust formatting and TypeScript, audit npm dependencies, and run the full test suite. Actions are SHA-pinned with monthly Dependabot updates; jobs use read-only repository permissions and require no secrets. CI does not publish packages or deploy anything.
+GitHub Actions runs the reusable Verify workflow on pull requests and pushes to `main`, with manual runs available. Both Node 24.22.1 and 26.12.1 build the WASM engine, check Oxfmt/Oxlint, Rust formatting and TypeScript, audit npm dependencies, and run the full Vitest suite. Actions are SHA-pinned with monthly Dependabot updates; jobs use read-only repository permissions and require no secrets. CI does not publish packages or deploy anything.
 
 `scripts/notices.mjs` regenerates third-party notices from the locked WASM build graph. It may fetch pinned upstream license text when a crate archive omits it; this is a maintainer action, never an install hook. Rust's standard-library notices are also included. See `THIRD_PARTY_NOTICES.md` and `licenses/`.

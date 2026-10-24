@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import {
@@ -18,7 +18,6 @@ import {
 } from "viem";
 import { foundry } from "viem/chains";
 import solc from "solc";
-import { compile } from "../dist/index.js";
 
 test("Counter deploys on disposable Anvil and viem reads/writes use the imported ABI", async (t) => {
   const anvil = spawn(
@@ -30,7 +29,7 @@ test("Counter deploys on disposable Anvil and viem reads/writes use the imported
   anvil.stderr.on("data", (b) => {
     failure += b;
   });
-  t.after(async () => {
+  t.onTestFinished(async () => {
     const exited = new Promise((r) => anvil.once("exit", r));
     anvil.kill("SIGTERM");
     await exited;
@@ -69,9 +68,20 @@ test("Counter deploys on disposable Anvil and viem reads/writes use the imported
       }),
     ),
   );
-  // Import through the actual Node adapter, not the compiler's programmatic API.
-  await import("../dist/register.js");
-  const { Counter } = await import("../examples/Counter.sol");
+  // A native Node subprocess exercises registerHooks rather than Vitest's loader.
+  const Counter = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [
+        "--import",
+        "./dist/register.js",
+        "--input-type=module",
+        "-e",
+        "import { Counter } from './examples/Counter.sol'; console.log(JSON.stringify(Counter));",
+      ],
+      { encoding: "utf8" },
+    ),
+  );
   const hash = await wallet.deployContract({
     account,
     abi: Counter,
@@ -134,7 +144,7 @@ test("WASM is host-import-free and repeated analysis stabilizes memory, includin
 
 test("Foundry effective profile and remappings are read by forge", (t) => {
   const root = mkdtempSync(join(tmpdir(), "solilo-foundry-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(root, { recursive: true, force: true }));
   writeFileSync(
     join(root, "foundry.toml"),
     '[profile.default]\nremappings = ["base/=wrong/"]\n[profile.solilo]\nremappings = ["base/=lib/"]\n',

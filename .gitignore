@@ -4,3 +4,4 @@
 *.tgz
 /.amp/portals/
 /tests/oracle/target/
+/.vite-hooks/

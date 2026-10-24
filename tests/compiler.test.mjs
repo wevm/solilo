@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import {
   mkdtempSync,
@@ -9,7 +9,7 @@ import {
   symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import solc from "solc";
 import { compile, runtimeModule } from "../dist/index.js";
 
@@ -70,7 +70,7 @@ test("Solar matches solc ABI for getters, overloads, tuples, events, errors and 
 
 test("source overlays, saved dependencies, new imports and deleted dependencies cannot reuse stale ABI", (t) => {
   const root = mkdtempSync(join(tmpdir(), "solilo-imports-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(root, { recursive: true, force: true }));
   writeFileSync(join(root, "package.json"), "{}");
   writeFileSync(
     join(root, "solilo.json"),
@@ -168,7 +168,7 @@ test("Rust extraction keeps original Unicode/CRLF offsets and does not infer fro
 test("import reads enforce real source roots, including symlinks", (t) => {
   const root = mkdtempSync(join(tmpdir(), "solilo-roots-"));
   const outside = mkdtempSync(join(tmpdir(), "solilo-outside-"));
-  t.after(() => {
+  t.onTestFinished(() => {
     rmSync(root, { recursive: true, force: true });
     rmSync(outside, { recursive: true, force: true });
   });
@@ -182,7 +182,7 @@ test("import reads enforce real source roots, including symlinks", (t) => {
 
 test("Solidity names that are JavaScript keywords remain valid named ABI exports", async (t) => {
   const root = mkdtempSync(join(tmpdir(), "solilo-names-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(root, { recursive: true, force: true }));
   const file = join(root, "Names.sol");
   writeFileSync(
     file,

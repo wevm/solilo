@@ -1,12 +1,6 @@
 // Maintainer-only license collection. Network is used only when crate archives omit their license.
 import { execFileSync } from "node:child_process";
-import {
-  readFileSync,
-  readdirSync,
-  existsSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const metadata = JSON.parse(

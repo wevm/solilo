@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
@@ -15,12 +15,14 @@ import { tmpdir } from "node:os";
 
 test("packed package installs offline and works in Node, Bun, Vite, Vitest and TS7 without a toolchain", (t) => {
   const root = mkdtempSync(join(tmpdir(), "solilo-packed-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.onTestFinished(() => rmSync(root, { recursive: true, force: true }));
   const [packed] = JSON.parse(
     execFileSync(
       "npm",
       ["pack", "--ignore-scripts", "--json", "--pack-destination", root],
-      { encoding: "utf8" },
+      {
+        encoding: "utf8",
+      },
     ),
   );
   assert.ok(packed.files.some((f) => f.path === "dist/engine.wasm"));
@@ -29,11 +31,13 @@ test("packed package installs offline and works in Node, Bun, Vite, Vitest and T
     !packed.files.some((f) => /(?:target\/|\.rs$|solc|\.node$)/.test(f.path)),
   );
   const dependencies = Object.fromEntries(
-    ["viem", "vite", "vitest"].map((name) => [
+    ["viem", "vitest"].map((name) => [
       name,
       JSON.parse(readFileSync(`node_modules/${name}/package.json`)).version,
     ]),
   );
+  // Test ordinary Vite consumers too, independently of our Vite+ development alias.
+  dependencies.vite = "8.3.5";
   writeFileSync(
     join(root, "package.json"),
     JSON.stringify({
@@ -94,7 +98,10 @@ test("packed package installs offline and works in Node, Bun, Vite, Vitest and T
     execFileSync(
       resolve("node_modules/.bin/tsc"),
       ["-p", root, "--runExternalCode"],
-      { encoding: "utf8", env },
+      {
+        encoding: "utf8",
+        env,
+      },
     ),
     "",
   );
@@ -126,7 +133,11 @@ test("packed package installs offline and works in Node, Bun, Vite, Vitest and T
   const output = execFileSync(
     join(root, "node_modules/.bin/vitest"),
     ["run", "abi.test.ts"],
-    { cwd: root, encoding: "utf8", env },
+    {
+      cwd: root,
+      encoding: "utf8",
+      env,
+    },
   );
   assert.match(output, /1 passed/);
 });
