@@ -1,0 +1,24 @@
+[package]
+name = "solilo-bridge"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[lib]
+path = "bridge/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+solar-sema = { git = "https://github.com/paradigmxyz/solar", rev = "7db9ef11507b1848cc1f1a117ef6337bf1957968", default-features = false }
+solar-interface = { git = "https://github.com/paradigmxyz/solar", rev = "7db9ef11507b1848cc1f1a117ef6337bf1957968", default-features = false, features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+proc-macro2 = { version = "1", features = ["span-locations"] }
+syn = { version = "2", features = ["full", "visit"] }
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+panic = "abort"
+strip = "debuginfo"

@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "contentMappers": [{ "package": "solilo", "extensions": [".sol", ".rs"] }],
+  "include": ["*.ts"]
+}

@@ -1,0 +1,13 @@
+[package]
+name = "solilo-alloy-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+alloy-sol-types = { version = "=1.7.3", features = ["json"] }
+serde_json = "1"
+
+[build-dependencies]
+syn = { version = "2", features = ["full"] }
+quote = "1"
