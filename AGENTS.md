@@ -11,6 +11,10 @@ Source `$HOME/.cargo/env` if needed. Tests start and stop a disposable Anvil;
 they use no shared chain or secrets.
 Tests must exercise the built package, and packaging tests install the tarball
 offline. Build output belongs in ignored `dist/` and `target/`, not source files.
+Write tests in TypeScript. Colocate module tests as `src/<module>.test.ts`;
+keep package-wide, editor, chain, and independent-oracle integration tests in
+`tests/`. `npm run check:types` checks both source and tests. Test files must not
+be emitted into `dist/` or included in the npm package.
 
 Preserve the direct-import API: named readonly ABI arrays, no generated clients,
 default export, hidden downloads, or runtime compiler in browser bundles.

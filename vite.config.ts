@@ -18,7 +18,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/*.test.mjs"],
+    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     // Cold Cargo builds and consumer package installs run in these tests.
     testTimeout: 180_000,
     hookTimeout: 30_000,

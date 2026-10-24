@@ -2,10 +2,12 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import type { Abi } from "abitype";
 import { compile } from "../dist/index.js";
+import { canonical } from "./abi.js";
 
 test("both Tempo interfaces match the independent Alloy macro oracle", () => {
-  const oracle = JSON.parse(
+  const oracle: Record<string, Abi> = JSON.parse(
     execFileSync(
       "cargo",
       [
@@ -26,21 +28,6 @@ test("both Tempo interfaces match the independent Alloy macro oracle", () => {
       },
     ),
   );
-  function canonical(abi) {
-    const clean = (value) =>
-      Array.isArray(value)
-        ? value.map(clean)
-        : value && typeof value === "object"
-          ? Object.fromEntries(
-              Object.entries(value)
-                .filter(([key]) => key !== "internalType")
-                .map(([key, v]) => [key, clean(v)]),
-            )
-          : value;
-    return clean(abi).sort((a, b) =>
-      JSON.stringify(a).localeCompare(JSON.stringify(b)),
-    );
-  }
   const result = compile("examples/tip20.rs");
   assert.deepEqual(
     result.diagnostics.filter((d) => d.severity === "error"),
@@ -52,7 +39,10 @@ test("both Tempo interfaces match the independent Alloy macro oracle", () => {
   ]);
   const source = readFileSync("examples/tip20.rs");
   for (const contract of result.contracts) {
-    assert.deepEqual(canonical(contract.abi), canonical(oracle[contract.name]));
+    assert.deepEqual(
+      canonical(contract.abi),
+      canonical(oracle[contract.name]!),
+    );
     for (const member of contract.members)
       assert.equal(
         source.subarray(member.start, member.end).toString(),

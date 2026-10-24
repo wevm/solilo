@@ -1,28 +1,49 @@
 import { spawn } from "node:child_process";
-import { watch } from "node:fs";
+import { watch, type FSWatcher } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import type {
+  ConfigurationParams,
+  DidChangeWatchedFilesRegistrationOptions,
+  RegistrationParams,
+  UnregistrationParams,
+} from "vscode-languageserver-protocol";
+
+type Message = {
+  id?: number;
+  method?: string;
+  params?: unknown;
+  result?: unknown;
+  error?: unknown;
+};
 
 /** Native TS7 LSP, with the same protocol and watched-file notifications VS Code uses. */
-export function server(root) {
+export function server(root: string) {
   const child = spawn(
     fileURLToPath(new URL("../node_modules/.bin/tsc", import.meta.url)),
     ["--lsp", "--stdio"],
     { cwd: root, stdio: ["pipe", "pipe", "pipe"] },
   );
-  const pending = new Map(),
-    watchers = new Map();
+  const pending = new Map<
+      number,
+      {
+        resolve(value: unknown): void;
+        reject(error: Error): void;
+        timer: ReturnType<typeof setTimeout>;
+      }
+    >(),
+    watchers = new Map<string, FSWatcher[]>();
   let buffer = Buffer.alloc(0),
     id = 0,
     stderr = "";
   child.stderr.on("data", (chunk) => {
     stderr += chunk;
   });
-  function write(message) {
+  function write(message: Message) {
     const body = Buffer.from(JSON.stringify({ jsonrpc: "2.0", ...message }));
     child.stdin.write(`Content-Length: ${body.length}\r\n\r\n`);
     child.stdin.write(body);
   }
-  function notify(method, params) {
+  function notify(method: string, params: unknown) {
     write({ method, params });
   }
   child.stdout.on("data", (chunk) => {
@@ -31,18 +52,22 @@ export function server(root) {
       const end = buffer.indexOf("\r\n\r\n");
       if (end < 0) return;
       const length = Number(
-        /Content-Length:\s*(\d+)/i.exec(buffer.subarray(0, end).toString())[1],
+        /Content-Length:\s*(\d+)/i.exec(buffer.subarray(0, end).toString())![1],
       );
       if (buffer.length < end + 4 + length) return;
-      const message = JSON.parse(
+      const message: Message = JSON.parse(
         buffer.subarray(end + 4, end + 4 + length).toString(),
       );
       buffer = buffer.subarray(end + 4 + length);
       if (message.method && message.id !== undefined) {
         if (message.method === "client/registerCapability") {
-          for (const registration of message.params.registrations) {
-            const list = [];
-            for (const item of registration.registerOptions?.watchers ?? []) {
+          for (const registration of (message.params as RegistrationParams)
+            .registrations) {
+            const list: FSWatcher[] = [];
+            const options = registration.registerOptions as
+              | DidChangeWatchedFilesRegistrationOptions
+              | undefined;
+            for (const item of options?.watchers ?? []) {
               const pattern = item.globPattern;
               // Exact files from the mapper (including its new-file sentinel).
               if (typeof pattern !== "string" || /[*?{}]/.test(pattern))
@@ -61,7 +86,8 @@ export function server(root) {
           }
         }
         if (message.method === "client/unregisterCapability") {
-          for (const reg of message.params.unregisterations ?? []) {
+          for (const reg of (message.params as UnregistrationParams)
+            .unregisterations ?? []) {
             for (const watcher of watchers.get(reg.id) ?? []) watcher.close();
             watchers.delete(reg.id);
           }
@@ -70,7 +96,7 @@ export function server(root) {
           id: message.id,
           result:
             message.method === "workspace/configuration"
-              ? message.params.items.map(() => null)
+              ? (message.params as ConfigurationParams).items.map(() => null)
               : null,
         });
       } else if (message.id !== undefined) {
@@ -85,14 +111,18 @@ export function server(root) {
       }
     }
   });
-  function request(method, params) {
+  function request<T = unknown>(method: string, params: unknown): Promise<T> {
     return new Promise((resolve, reject) => {
       const key = ++id;
       const timer = setTimeout(() => {
         pending.delete(key);
         reject(new Error(`${method} timed out: ${stderr}`));
       }, 20000);
-      pending.set(key, { resolve, reject, timer });
+      pending.set(key, {
+        resolve: (value) => resolve(value as T),
+        reject,
+        timer,
+      });
       write({ id: key, method, params });
     });
   }
@@ -129,15 +159,18 @@ export function server(root) {
   };
 }
 
-export function position(text, needle, offset = 0) {
+export function position(text: string, needle: string, offset = 0) {
   const index = text.indexOf(needle);
   if (index < 0) throw new Error(`Missing ${needle}`);
   const lines = text.slice(0, index + offset).split("\n");
-  return { line: lines.length - 1, character: lines.at(-1).length };
+  return { line: lines.length - 1, character: lines.at(-1)!.length };
 }
 
-export async function eventually(fn, predicate) {
-  let value;
+export async function eventually<T>(
+  fn: () => T | Promise<T>,
+  predicate: (value: T) => boolean | undefined,
+) {
+  let value: T | undefined;
   for (let i = 0; i < 80; i++) {
     value = await fn();
     if (predicate(value)) return value;

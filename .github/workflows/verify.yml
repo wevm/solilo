@@ -1,8 +1,6 @@
 name: Verify
 
 on:
-  push:
-    branches: [main]
   workflow_call:
   workflow_dispatch:
 
@@ -70,6 +68,9 @@ jobs:
 
       - name: Build package and WASM
         run: npm run build
+
+      - name: Validate packed package
+        run: npm run test:build
 
       - name: Check types
         run: |

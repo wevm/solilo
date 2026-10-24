@@ -11,28 +11,17 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import solc from "solc";
+import type { Abi } from "abitype";
 import { compile, runtimeModule } from "../dist/index.js";
-
-export function canonical(abi) {
-  const clean = (value) =>
-    Array.isArray(value)
-      ? value.map(clean)
-      : value && typeof value === "object"
-        ? Object.fromEntries(
-            Object.entries(value)
-              .filter(([key]) => key !== "internalType")
-              .map(([key, v]) => [key, clean(v)]),
-          )
-        : value;
-  return clean(abi).sort((a, b) =>
-    JSON.stringify(a).localeCompare(JSON.stringify(b)),
-  );
-}
+import { canonical } from "../tests/abi.js";
 
 test("Solar matches solc ABI for getters, overloads, tuples, events, errors and inheritance", () => {
   for (const file of ["examples/Counter.sol", "tests/fixtures/Features.sol"]) {
     const source = readFileSync(file, "utf8");
-    const oracle = JSON.parse(
+    const oracle: {
+      errors?: { severity: string }[];
+      contracts: Record<string, Record<string, { abi: Abi }>>;
+    } = JSON.parse(
       solc.compile(
         JSON.stringify({
           language: "Solidity",
@@ -52,12 +41,12 @@ test("Solar matches solc ABI for getters, overloads, tuples, events, errors and 
     );
     assert.equal(
       result.contracts.length,
-      Object.keys(oracle.contracts[file]).length,
+      Object.keys(oracle.contracts[file]!).length,
     );
     for (const contract of result.contracts) {
       assert.deepEqual(
         canonical(contract.abi),
-        canonical(oracle.contracts[file][contract.name].abi),
+        canonical(oracle.contracts[file]![contract.name]!.abi),
       );
       for (const member of contract.members)
         assert.equal(
@@ -86,7 +75,10 @@ test("source overlays, saved dependencies, new imports and deleted dependencies 
   const source =
     'pragma solidity ^0.8.13; import {Base} from "base/Base.sol"; interface Entry is Base {}';
   writeFileSync(entry, source);
-  const names = () => compile(entry).contracts[0]?.abi.map((x) => x.name);
+  const names = () =>
+    compile(entry).contracts[0]?.abi.map((x) =>
+      "name" in x ? x.name : undefined,
+    );
   assert.deepEqual(names(), ["old"]);
   writeFileSync(
     base,
@@ -94,16 +86,18 @@ test("source overlays, saved dependencies, new imports and deleted dependencies 
   );
   assert.deepEqual(names(), ["fresh"]);
   assert.equal(
-    compile(entry, source.replace("Entry is", "Overlay is")).contracts[0].name,
+    compile(entry, source.replace("Entry is", "Overlay is")).contracts[0]?.name,
     "Overlay",
   );
-  assert.equal(compile(entry).contracts[0].name, "Entry");
+  assert.equal(compile(entry).contracts[0]?.name, "Entry");
   const changed = source.replace("base/Base.sol", "base/New.sol");
   assert.ok(
     compile(entry, changed).diagnostics.some((d) => d.severity === "error"),
   );
   writeFileSync(join(root, "lib/New.sol"), readFileSync(base));
-  assert.equal(compile(entry, changed).contracts[0].abi[0].name, "fresh");
+  const item = compile(entry, changed).contracts[0]?.abi[0];
+  assert.ok(item && "name" in item);
+  assert.equal(item.name, "fresh");
   rmSync(base);
   assert.throws(() => runtimeModule(entry), /not found|resolve|import/i);
   writeFileSync(entry, "contract Entry { invalid }");
@@ -139,7 +133,7 @@ test("unsupported compiler modes and Rust expansion fail closed; subsequent anal
       source,
     );
   }
-  assert.equal(compile("examples/Counter.sol").contracts[0].name, "Counter");
+  assert.equal(compile("examples/Counter.sol").contracts[0]?.name, "Counter");
 });
 
 test("Rust extraction keeps original Unicode/CRLF offsets and does not infer from storage macros", () => {
@@ -154,7 +148,8 @@ test("Rust extraction keeps original Unicode/CRLF offsets and does not infer fro
     r.contracts.map((c) => c.name),
     ["I"],
   );
-  const member = r.contracts[0].members[0];
+  const member = r.contracts[0]?.members[0];
+  assert.ok(member);
   assert.equal(
     member.start,
     Buffer.byteLength(source.slice(0, source.indexOf("read()"))),

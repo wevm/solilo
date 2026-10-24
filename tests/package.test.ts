@@ -16,24 +16,29 @@ import { tmpdir } from "node:os";
 test("packed package installs offline and works in Node, Bun, Vite, Vitest and TS7 without a toolchain", (t) => {
   const root = mkdtempSync(join(tmpdir(), "solilo-packed-"));
   t.onTestFinished(() => rmSync(root, { recursive: true, force: true }));
-  const [packed] = JSON.parse(
-    execFileSync(
-      "npm",
-      ["pack", "--ignore-scripts", "--json", "--pack-destination", root],
-      {
-        encoding: "utf8",
-      },
-    ),
-  );
+  const [packed]: { filename: string; files: { path: string }[] }[] =
+    JSON.parse(
+      execFileSync(
+        "npm",
+        ["pack", "--ignore-scripts", "--json", "--pack-destination", root],
+        {
+          encoding: "utf8",
+        },
+      ),
+    );
+  assert.ok(packed);
   assert.ok(packed.files.some((f) => f.path === "dist/engine.wasm"));
   assert.ok(packed.files.some((f) => f.path === "THIRD_PARTY_NOTICES.md"));
   assert.ok(
-    !packed.files.some((f) => /(?:target\/|\.rs$|solc|\.node$)/.test(f.path)),
+    !packed.files.some((f) =>
+      /(?:target\/|\.rs$|solc|\.node$|\.test\.)/.test(f.path),
+    ),
   );
   const dependencies = Object.fromEntries(
     ["viem", "vitest"].map((name) => [
       name,
-      JSON.parse(readFileSync(`node_modules/${name}/package.json`)).version,
+      JSON.parse(readFileSync(`node_modules/${name}/package.json`, "utf8"))
+        .version,
     ]),
   );
   // Test ordinary Vite consumers too, independently of our Vite+ development alias.
@@ -86,7 +91,7 @@ test("packed package installs offline and works in Node, Bun, Vite, Vitest and T
   for (const [runtime, args] of [
     [process.execPath, ["--import", "solilo/register", "main.ts"]],
     ["bun", ["--preload", "solilo/register", "main.ts"]],
-  ]) {
+  ] as const) {
     assert.deepEqual(
       JSON.parse(
         execFileSync(runtime, args, { cwd: root, encoding: "utf8", env }),

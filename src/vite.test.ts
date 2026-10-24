@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer } from "vite";
 import solilo from "../dist/vite.js";
-import { eventually } from "./lsp.mjs";
+import { eventually } from "../tests/lsp.js";
 
 test("Vite refreshes dependent ABI modules and rejects an invalid saved edit", async () => {
   const root = mkdtempSync(join(tmpdir(), "solilo-vite-"));
@@ -27,7 +27,9 @@ test("Vite refreshes dependent ABI modules and rejects an invalid saved edit", a
     server: { middlewareMode: true },
   });
   try {
-    assert.match((await server.transformRequest("/Entry.sol")).code, /first/);
+    const initial = await server.transformRequest("/Entry.sol");
+    assert.ok(initial);
+    assert.match(initial.code, /first/);
     writeFileSync(
       join(root, "Base.sol"),
       "interface Base { function second(uint256 x) external; }",

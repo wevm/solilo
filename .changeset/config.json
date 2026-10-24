@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
+  "changelog": [
+    "@changesets/changelog-github",
+    { "repo": "wevm/solilo", "template": "- {summary} {ref}" }
+  ],
+  "commit": false,
+  "access": "public",
+  "fixed": [],
+  "linked": [],
+  "baseBranch": "main",
+  "updateInternalDependencies": "minor",
+  "ignore": []
+}

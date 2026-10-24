@@ -1,4 +1,4 @@
-import { test } from "vitest";
+import { test, type TestContext } from "vitest";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
@@ -11,9 +11,18 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { server, position, eventually } from "./lsp.mjs";
+import type {
+  Hover,
+  MarkupContent,
+  LocationLink,
+  FullDocumentDiagnosticReport,
+} from "vscode-languageserver-protocol";
+import { server, position, eventually } from "./lsp.js";
 
-function fixture(t) {
+// The test client advertises Markdown hover content and definition link support.
+type MarkdownHover = (Hover & { contents: MarkupContent }) | null;
+
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), "solilo-editor-"));
   t.onTestFinished(() => rmSync(root, { recursive: true, force: true }));
   writeFileSync(join(root, "package.json"), '{"type":"module"}');
@@ -78,17 +87,21 @@ test("native TS7 definitions, getters, unsaved source edits and invalid source d
       textDocument: { uri, languageId: "typescript", version: 1, text },
     });
     const hover = () =>
-      lsp.request("textDocument/hover", {
+      lsp.request<MarkdownHover>("textDocument/hover", {
         textDocument: { uri },
         position: position(text, "n ="),
       });
     await eventually(hover, (h) =>
       h?.contents?.value.includes("Promise<bigint>"),
     );
-    const definition = await lsp.request("textDocument/definition", {
-      textDocument: { uri },
-      position: position(text, "abi = Counter", 6),
-    });
+    const definition = await lsp.request<LocationLink[] | null>(
+      "textDocument/definition",
+      {
+        textDocument: { uri },
+        position: position(text, "abi = Counter", 6),
+      },
+    );
+    assert.ok(definition?.[0]);
     assert.equal(definition[0].targetUri, sourceUri);
     assert.deepEqual(
       definition[0].targetSelectionRange.start,
@@ -101,10 +114,14 @@ test("native TS7 definitions, getters, unsaved source edits and invalid source d
     console.info(
       `viem read.number definition targets: ${JSON.stringify(viem)}`,
     );
-    const getter = await lsp.request("textDocument/definition", {
-      textDocument: { uri },
-      position: position(text, "Counter[1].name", 11),
-    });
+    const getter = await lsp.request<LocationLink[] | null>(
+      "textDocument/definition",
+      {
+        textDocument: { uri },
+        position: position(text, "Counter[1].name", 11),
+      },
+    );
+    assert.ok(getter);
     assert.ok(
       getter.some((d) => d.targetUri === sourceUri),
       JSON.stringify(getter),
@@ -142,7 +159,7 @@ test("native TS7 definitions, getters, unsaved source edits and invalid source d
       contentChanges: [{ text: "contract Counter { broken" }],
     });
     const diagnostics = () =>
-      lsp.request("textDocument/diagnostic", {
+      lsp.request<FullDocumentDiagnosticReport>("textDocument/diagnostic", {
         textDocument: { uri: sourceUri },
       });
     await eventually(diagnostics, (d) =>
@@ -173,17 +190,21 @@ test("native TS7 refreshes saved dependencies and newly created imports without 
       textDocument: { uri, languageId: "typescript", version: 1, text },
     });
     const hover = () =>
-      lsp.request("textDocument/hover", {
+      lsp.request<MarkdownHover>("textDocument/hover", {
         textDocument: { uri },
         position: position(text, "value ="),
       });
     await eventually(hover, (h) =>
       h?.contents?.value.includes("Promise<bigint>"),
     );
-    const inherited = await lsp.request("textDocument/definition", {
-      textDocument: { uri },
-      position: position(text, "Entry[0].name", 10),
-    });
+    const inherited = await lsp.request<LocationLink[] | null>(
+      "textDocument/definition",
+      {
+        textDocument: { uri },
+        position: position(text, "Entry[0].name", 10),
+      },
+    );
+    assert.ok(inherited?.[0]);
     assert.equal(
       inherited[0].targetUri,
       pathToFileURL(join(root, "Entry.sol")).href,
@@ -205,7 +226,7 @@ test("native TS7 refreshes saved dependencies and newly created imports without 
     );
     await eventually(
       () =>
-        lsp.request("textDocument/diagnostic", {
+        lsp.request<FullDocumentDiagnosticReport>("textDocument/diagnostic", {
           textDocument: { uri: pathToFileURL(join(root, "Entry.sol")).href },
         }),
       (d) => d?.items?.some((x) => x.severity === 1),

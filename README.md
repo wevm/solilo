@@ -128,6 +128,7 @@ npm run build
 npm run check
 npm run check:types
 npm run test:types
+npm run test:build
 npm test
 npm pack
 ```
@@ -136,6 +137,12 @@ Vite+ owns the development toolchain in `vite.config.ts`: `npm test` runs Vitest
 `npm run check` checks Oxfmt formatting and Oxlint rules without changing files,
 `npm run format` applies formatting, and `npm run lint` runs Oxlint alone.
 Type checks stay on the pinned TypeScript 7.1 compiler so the content mapper is exercised.
+
+Tests use TypeScript: module tests live beside their implementation as
+`src/<module>.test.ts`; package-wide, editor, chain, and independent-oracle
+integration tests live in `tests/`. `npm run check:types` checks both source and
+tests in strict mode. Tests still exercise the built package, but their code and
+declarations are excluded from the build and npm tarball.
 
 On a local Git checkout, `npm ci` installs the Vite+ hook dispatcher and recreates
 `.vite-hooks/pre-commit`, which runs `vp staged`. The entire `.vite-hooks/` directory
@@ -149,6 +156,25 @@ Tests cover solc ABI parity, Alloy TIP20 parity, viem inference and negative typ
 
 The packed-package test first installs its consumer dependencies to warm the npm cache, deletes the consumer's `node_modules`, then reinstalls with `npm ci --offline --ignore-scripts`. Runtime checks have only Node and Bun on PATH. The test also checks that browser output contains arrays rather than a compiler. Validation currently covers Linux; macOS/Windows have not been independently verified.
 
-GitHub Actions runs the reusable Verify workflow on pull requests and pushes to `main`, with manual runs available. Both Node 24.22.1 and 26.12.1 build the WASM engine, check Oxfmt/Oxlint, Rust formatting and TypeScript, audit npm dependencies, and run the full Vitest suite. Actions are SHA-pinned with monthly Dependabot updates; jobs use read-only repository permissions and require no secrets. CI does not publish packages or deploy anything.
+GitHub Actions runs the reusable Verify workflow on pull requests and, through the Changesets workflow, pushes to `main`, with manual verification runs available. Both Node 24.22.1 and 26.12.1 build the WASM engine, check Oxfmt/Oxlint, Rust formatting and TypeScript, audit npm dependencies, validate the packed package with `publint --strict`, and run the full Vitest suite. Actions are SHA-pinned with monthly Dependabot updates; verification jobs use read-only repository permissions and require no secrets.
+
+## Release preparation
+
+Run `npm run changeset` for user-visible changes and commit the generated file.
+`npm run changeset:status` previews pending version bumps. After verification on
+`main`, Changesets opens or updates a version PR with the changelog, package
+version, and synchronized npm lockfile. Only that job has contents/PR write
+permissions; it does not restore dependency caches.
+
+**Publishing is disabled.** Merging a version PR does not publish to npm, create
+tags or GitHub releases, or deploy anything. The version remains 0.1.0 until a
+version change is merged. See [the Changesets guide](.changeset/README.md) for
+release preparation and the required GitHub setting allowing Actions to create
+PRs. Bot-created version PRs need a maintainer to close/reopen them to trigger
+their verification workflow.
+
+Solilo is experimental: use the pinned TypeScript 7.1 nightly and editor versions
+documented above. Cross-platform validation remains outstanding; passing Linux
+CI is not a macOS/Windows support claim.
 
 `scripts/notices.mjs` regenerates third-party notices from the locked WASM build graph. It may fetch pinned upstream license text when a crate archive omits it; this is a maintainer action, never an install hook. Rust's standard-library notices are also included. See `THIRD_PARTY_NOTICES.md` and `licenses/`.
