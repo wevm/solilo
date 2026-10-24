@@ -41,23 +41,30 @@ test("packed package installs offline and works in Node, Bun, Vite, Vitest and T
       dependencies: { ...dependencies, solilo: `file:./${packed.filename}` },
     }),
   );
-  execFileSync(
-    "npm",
-    [
-      "install",
-      "--offline",
-      "--ignore-scripts",
-      "--legacy-peer-deps",
-      "--no-audit",
-      "--no-fund",
-    ],
-    { cwd: root, encoding: "utf8" },
-  );
+  // Warm this consumer's dependency cache explicitly. The repository's npm ci
+  // caches tarballs, but not the registry metadata for a fresh consumer install.
+  const installArgs = [
+    "--ignore-scripts",
+    "--legacy-peer-deps",
+    "--no-audit",
+    "--no-fund",
+  ];
+  execFileSync("npm", ["install", ...installArgs], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  rmSync(join(root, "node_modules"), { recursive: true, force: true });
+  execFileSync("npm", ["ci", "--offline", ...installArgs], {
+    cwd: root,
+    encoding: "utf8",
+  });
   const bin = join(root, "bin");
   mkdirSync(bin);
   symlinkSync(process.execPath, join(bin, "node"));
   symlinkSync(
-    execFileSync("bun", ["-p", "process.execPath"], { encoding: "utf8" }).trim(),
+    execFileSync("bun", ["-p", "process.execPath"], {
+      encoding: "utf8",
+    }).trim(),
     join(bin, "bun"),
   );
   const env = { ...process.env, PATH: bin };
@@ -77,7 +84,9 @@ test("packed package installs offline and works in Node, Bun, Vite, Vitest and T
     ["bun", ["--preload", "solilo/register", "main.ts"]],
   ]) {
     assert.deepEqual(
-      JSON.parse(execFileSync(runtime, args, { cwd: root, encoding: "utf8", env })),
+      JSON.parse(
+        execFileSync(runtime, args, { cwd: root, encoding: "utf8", env }),
+      ),
       expected,
     );
   }
