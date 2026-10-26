@@ -1,5 +1,0 @@
----
-"solilo": patch
----
-
-Initial release
