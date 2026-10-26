@@ -1,6 +1,6 @@
 {
   "name": "solilo",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Import Solidity and literal Alloy interfaces as typed ABI arrays.",
   "homepage": "https://github.com/wevm/solilo#readme",
   "bugs": {
@@ -33,10 +33,10 @@
   },
   "scripts": {
     "build:wasm": "cargo build --locked --release --target wasm32-unknown-unknown",
-    "build": "npm run build:wasm && tsc -p tsconfig.json && node scripts/build.mjs",
+    "build": "pnpm run build:wasm && tsc -p tsconfig.json && node scripts/build.mjs",
     "changeset": "changeset",
     "changeset:status": "changeset status",
-    "changeset:version": "changeset version && npm install --package-lock-only --ignore-scripts && npm run format",
+    "changeset:version": "changeset version && pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile && pnpm run format",
     "check": "vp check --deny-warnings",
     "check:types": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "format": "vp fmt",
@@ -47,7 +47,7 @@
     "test:build": "publint --strict",
     "test:types": "tsc -p examples/tsconfig.json --runExternalCode",
     "prepare": "node scripts/prepare.mjs",
-    "prepack": "npm run build"
+    "prepack": "pnpm run build"
   },
   "dependencies": {
     "abitype": "1.2.3"
@@ -58,6 +58,7 @@
     "@foundry-rs/anvil": "1.7.1",
     "@foundry-rs/forge": "1.7.1",
     "@types/node": "^24.0.0",
+    "pkg-pr-new": "0.0.92",
     "publint": "0.3.25",
     "solc": "0.8.38",
     "typescript": "7.1.0-dev.20261023.1",
@@ -66,11 +67,6 @@
     "vite-plus": "1.4.0",
     "vitest": "5.0.5",
     "vscode-languageserver-protocol": "3.18.5"
-  },
-  "overrides": {
-    "tmp": "0.2.7",
-    "vite": "$vite",
-    "vitest": "$vitest"
   },
   "typescript": {
     "contentMapper": {
@@ -84,5 +80,6 @@
   },
   "engines": {
     "node": ">=24.22.1"
-  }
+  },
+  "packageManager": "pnpm@10.34.9"
 }

@@ -15,3 +15,7 @@ jobs:
   verify:
     name: Verify
     uses: ./.github/workflows/verify.yml
+
+  preview:
+    needs: verify
+    uses: ./.github/workflows/preview.yml

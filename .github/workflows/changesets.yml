@@ -17,6 +17,12 @@ jobs:
       contents: read
     uses: ./.github/workflows/verify.yml
 
+  preview:
+    needs: verify
+    permissions:
+      contents: read
+    uses: ./.github/workflows/preview.yml
+
   changesets:
     name: Prepare version PR
     needs: verify
@@ -34,6 +40,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
@@ -42,14 +51,14 @@ jobs:
           package-manager-cache: false
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Create version pull request
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           pr-title: "chore: version package"
           commit-message: "chore: version package"
-          version-script: npm run changeset:version
+          version-script: pnpm run changeset:version
           # No publish-script: merging a version PR must never publish.
           create-github-releases: false
           push-git-tags: false

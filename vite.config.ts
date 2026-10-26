@@ -2,11 +2,7 @@ import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   fmt: {
-    ignorePatterns: [
-      "licenses/**",
-      "THIRD_PARTY_NOTICES.md",
-      "package-lock.json",
-    ],
+    ignorePatterns: ["licenses/**", "THIRD_PARTY_NOTICES.md", "pnpm-lock.yaml"],
     printWidth: 80,
   },
   lint: {

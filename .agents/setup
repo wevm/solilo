@@ -9,6 +9,10 @@ if [[ ! -x "$HOME/.cargo/bin/rustup" ]]; then
 fi
 source "$HOME/.cargo/env"
 rustup show active-toolchain
-npm ci
-npm run build
+package_manager="$(node -p 'require("./package.json").packageManager')"
+if [[ "$(pnpm --version 2>/dev/null || true)" != "${package_manager#pnpm@}" ]]; then
+  npm install --global "$package_manager"
+fi
+pnpm install --frozen-lockfile
+pnpm run build
 cargo fetch --locked --manifest-path tests/oracle/Cargo.toml

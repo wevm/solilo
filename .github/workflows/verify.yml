@@ -27,11 +27,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
+          cache: pnpm
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -53,13 +56,13 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Audit dependencies
-        run: npm audit
+        run: pnpm audit
 
       - name: Check formatting and lint with Oxc
-        run: npm run check
+        run: pnpm run check
 
       - name: Check Rust formatting
         run: |
@@ -67,15 +70,15 @@ jobs:
           cargo fmt --manifest-path tests/oracle/Cargo.toml --all -- --check
 
       - name: Build package and WASM
-        run: npm run build
+        run: pnpm run build
 
       - name: Validate packed package
-        run: npm run test:build
+        run: pnpm run test:build
 
       - name: Check types
         run: |
-          npm run check:types
-          npm run test:types
+          pnpm run check:types
+          pnpm run test:types
 
       - name: Run Vitest integration and offline package tests
-        run: npm test
+        run: pnpm test

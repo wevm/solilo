@@ -1,0 +1,20 @@
+packages:
+  - .
+
+overrides:
+  tmp: 0.2.7
+  vite: "$vite"
+  vitest: "$vitest"
+
+# The pinned TS7 nightly is intentional, even though upstream peer ranges
+# exclude prereleases. Do not install a second TypeScript compiler for peers.
+autoInstallPeers: false
+peerDependencyRules:
+  allowedVersions:
+    typescript: "7.1.0-dev.20261023.1"
+    # Vite+ aliases Vite with its own version number.
+    vite: "1.4.0"
+
+onlyBuiltDependencies:
+  - "@foundry-rs/anvil"
+  - "@foundry-rs/forge"

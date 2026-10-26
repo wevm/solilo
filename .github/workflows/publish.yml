@@ -1,0 +1,77 @@
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact package.json version to publish (for example, 0.0.1)"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.repository == 'wevm/solilo' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify.yml
+
+  publish:
+    needs: verify
+    if: github.repository == 'wevm/solilo' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    # No environment: leave the npm trusted publisher's environment field blank.
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Check requested version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          node -e 'const version = require("./package.json").version; if (version !== process.env.RELEASE_VERSION || !/^\d+\.\d+\.\d+$/.test(version)) throw new Error("Requested version must match a stable version in package.json")'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "24.22.1"
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install npm with trusted-publishing support
+        run: npm install --global npm@12.2.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check pending version changes
+        run: |
+          pnpm run changeset:status --output "$RUNNER_TEMP/changesets.json"
+          node -e 'if (require(process.env.RUNNER_TEMP + "/changesets.json").releases.length) throw new Error("Merge the version PR before publishing")'
+
+      - name: Install pinned Rust toolchain
+        run: rustup show active-toolchain
+
+      - name: Build and pack without restored caches
+        run: pnpm pack --out "$RUNNER_TEMP/solilo.tgz"
+
+      - name: Validate release tarball
+        run: pnpm exec publint "$RUNNER_TEMP/solilo.tgz" --strict
+
+      - name: Publish via npm OIDC
+        # No npm token and no install/build hooks at the publication boundary.
+        run: npm publish "$RUNNER_TEMP/solilo.tgz" --tag latest --access public --ignore-scripts
