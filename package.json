@@ -1,6 +1,6 @@
 {
   "name": "solilo",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Import Solidity and literal Alloy interfaces as typed ABI arrays.",
   "homepage": "https://github.com/wevm/solilo#readme",
   "bugs": {
