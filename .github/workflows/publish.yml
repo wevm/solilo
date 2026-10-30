@@ -43,7 +43,7 @@ jobs:
           node -e 'const version = require("./package.json").version; if (version !== process.env.RELEASE_VERSION || !/^\d+\.\d+\.\d+$/.test(version)) throw new Error("Requested version must match a stable version in package.json")'
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        uses: wevm/actions/vendor/pnpm/action-setup/v6@73e899a58d51092d694fbaf94b7a1d8c09bfea28
 
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
