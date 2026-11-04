@@ -54,7 +54,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Create version pull request
-        uses: wevm/actions/vendor/changesets/action/abitype@8963daf30237417f873c8e2f17e3bf9415e3a7b9
+        uses: wevm/actions/vendor/changesets/action/v2@6d24d44bb98809270f8d2a19d584f29aeb384be5
         with:
           pr-title: "chore: version package"
           commit-message: "chore: version package"
