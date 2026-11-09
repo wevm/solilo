@@ -32,7 +32,7 @@ jobs:
     # No environment: leave the npm trusted publisher's environment field blank.
     steps:
       - name: Clone repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -43,7 +43,7 @@ jobs:
           node -e 'const version = require("./package.json").version; if (version !== process.env.RELEASE_VERSION || !/^\d+\.\d+\.\d+$/.test(version)) throw new Error("Requested version must match a stable version in package.json")'
 
       - name: Set up pnpm
-        uses: wevm/actions/vendor/pnpm/action-setup/v6@8963daf30237417f873c8e2f17e3bf9415e3a7b9
+        uses: wevm/actions/vendor/pnpm/action-setup/v6@b518cf981b50a4c745a8b7335fc693f34b108a75
 
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
