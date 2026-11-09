@@ -41,7 +41,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up pnpm
-        uses: wevm/actions/vendor/pnpm/action-setup/v6@8963daf30237417f873c8e2f17e3bf9415e3a7b9
+        uses: wevm/actions/vendor/pnpm/action-setup/v6@b518cf981b50a4c745a8b7335fc693f34b108a75
 
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -54,7 +54,7 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Create version pull request
-        uses: wevm/actions/vendor/changesets/action/v2@6d24d44bb98809270f8d2a19d584f29aeb384be5
+        uses: wevm/actions/vendor/changesets/action/v2@31d7c5bc5f75932a367cf341ca5e26818eb9ec9d
         with:
           pr-title: "chore: version package"
           commit-message: "chore: version package"
